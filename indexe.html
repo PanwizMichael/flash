@@ -227,10 +227,10 @@ forc1.html<!DOCTYPE html>
     <button id="retry-btn">Retry</button>
   </div>
 
- <script type="module">
+ <<script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.3.0/firebase-app.js";
     import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.3.0/firebase-auth.js";
-    import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.3.0/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.3.0/firebase-firestore.js";
     import firebaseConfig from "./firebaseConfig.js";
 
     const app = initializeApp(firebaseConfig);
@@ -240,43 +240,40 @@ forc1.html<!DOCTYPE html>
     let mediaRecorder;
     let audioChunks = [];
     let recordingInterval;
+    let isRecording = false;
 
-    // Handle user state
-    onAuthStateChanged(auth, async (user) => {
+    // Handle user authentication state
+    onAuthStateChanged(auth, (user) => {
         if (user) {
-            const username = user.displayName || user.email.split('@')[0];
-            document.getElementById('user-name').innerText = username;
+            document.getElementById('user-name').innerText = user.displayName || user.email.split('@')[0];
         } else {
             window.location.href = "login.html";
         }
     });
 
-    // Logout
+    // Logout function
     document.getElementById('logout-btn').addEventListener('click', () => {
         signOut(auth).then(() => window.location.href = "login.html");
     });
 
-    // Send text message
+    // Send Text Message
     document.getElementById('send-btn').addEventListener('click', async () => {
         const messageInput = document.getElementById('message-input');
         const text = messageInput.value.trim();
 
         if (text !== "") {
             const user = auth.currentUser;
-            const username = user.displayName || user.email.split('@')[0];
-
             await addDoc(collection(db, "publicMessages"), {
                 text,
-                senderName: username,
+                senderName: user.displayName || user.email.split('@')[0],
                 senderEmail: user.email,
                 timestamp: serverTimestamp(),
             });
-
             messageInput.value = "";
         }
     });
 
-    // Load messages
+    // Load Messages
     const messagesContainer = document.getElementById('messages');
     onSnapshot(collection(db, "publicMessages"), (snapshot) => {
         messagesContainer.innerHTML = "";
@@ -289,9 +286,11 @@ forc1.html<!DOCTYPE html>
 
             const date = new Date(msg.timestamp?.seconds * 1000);
             msgDiv.innerHTML = `
-                <div class="message-header">${msg.senderName} (${msg.senderEmail})</div>
-                <div class="message-body">${msg.text || '<audio controls src="' + msg.audioUrl + '"></audio>'}</div>
-                <div class="message-footer">${date.toLocaleDateString()} ${date.toLocaleTimeString()}</div>
+                <div class="message-header">${msg.senderName}</div>
+                <div class="message-body">
+                    ${msg.text ? msg.text : `<audio controls src="${msg.audioUrl}"></audio>`}
+                </div>
+                <div class="message-footer">${date.toLocaleTimeString()}</div>
             `;
             messagesContainer.appendChild(msgDiv);
         });
@@ -299,14 +298,24 @@ forc1.html<!DOCTYPE html>
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
     });
 
-    // Record audio
+    // Start/Stop Recording
     document.getElementById('record-btn').addEventListener('click', async () => {
+        if (!isRecording) {
+            startRecording();
+        } else {
+            stopRecording();
+        }
+    });
+
+    async function startRecording() {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         mediaRecorder = new MediaRecorder(stream);
         audioChunks = [];
+        isRecording = true;
 
         mediaRecorder.start();
         document.getElementById('recording-status').style.display = 'flex';
+        document.getElementById('send-audio-btn').style.display = 'block'; // Show send button
         startTimer();
 
         mediaRecorder.addEventListener("dataavailable", event => {
@@ -316,7 +325,15 @@ forc1.html<!DOCTYPE html>
         mediaRecorder.addEventListener("stop", () => {
             document.getElementById('audio-controls').style.display = 'flex';
         });
-    });
+    }
+
+    function stopRecording() {
+        if (mediaRecorder && isRecording) {
+            mediaRecorder.stop();
+            stopTimer();
+            isRecording = false;
+        }
+    }
 
     function startTimer() {
         let seconds = 0;
@@ -332,7 +349,7 @@ forc1.html<!DOCTYPE html>
         document.getElementById('recording-timer').innerText = '0s';
     }
 
-    // Upload audio using PHP
+    // Upload Audio to PHP Server
     async function uploadAudio(blob) {
         const formData = new FormData();
         formData.append('audio', blob, 'recording.webm');
@@ -343,39 +360,36 @@ forc1.html<!DOCTYPE html>
         });
 
         const data = await response.json();
-        return data.fileUrl;  // Assuming upload.php returns { "fileUrl": "path/to/file" }
+        return data.fileUrl;
     }
 
-    // Send recorded audio
+    // Send Recorded Audio
     document.getElementById('send-audio-btn').addEventListener('click', async () => {
-        mediaRecorder.stop();
-        stopTimer();
-        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+        stopRecording();
 
+        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
         const audioUrl = await uploadAudio(audioBlob);
 
         const user = auth.currentUser;
-        const username = user.displayName || user.email.split('@')[0];
-
         await addDoc(collection(db, "publicMessages"), {
             audioUrl,
-            senderName: username,
+            senderName: user.displayName || user.email.split('@')[0],
             senderEmail: user.email,
             timestamp: serverTimestamp(),
         });
 
         document.getElementById('audio-controls').style.display = 'none';
+        document.getElementById('send-audio-btn').style.display = 'none'; // Hide send button after sending
     });
 
-    // Delete recorded audio
+    // Delete Recorded Audio
     document.getElementById('delete-audio-btn').addEventListener('click', () => {
-        mediaRecorder.stop();
-        stopTimer();
+        stopRecording();
         document.getElementById('audio-controls').style.display = 'none';
+        document.getElementById('send-audio-btn').style.display = 'none'; // Hide send button
     });
 
-    document.getElementById('account-btn').addEventListener('click', () => window.location.href = "account.html");
-    document.getElementById('private-btn').addEventListener('click', () => window.location.href = "private.html");
+    // Detect Internet Connection
     const modal = document.getElementById('no-internet-modal');
     const statusMessage = document.getElementById('connection-status');
 
@@ -388,66 +402,45 @@ forc1.html<!DOCTYPE html>
       modal.style.display = 'none';
     }
 
-    // Function to test connection speed in KB/s
     function checkConnectionSpeed() {
-      return new Promise((resolve, reject) => {
-        const fileUrl = "https://www.w3.org/TR/PNG/iso_8859-1.txt";  // Approx 25KB file
+      return new Promise((resolve) => {
+        const fileUrl = "https://www.w3.org/TR/PNG/iso_8859-1.txt";
         const startTime = new Date().getTime();
 
         fetch(fileUrl)
           .then(response => response.blob())
           .then(blob => {
             const endTime = new Date().getTime();
-            const durationInSeconds = (endTime - startTime) / 1000; // Time in seconds
+            const durationInSeconds = (endTime - startTime) / 1000;
 
-            const fileSizeInBytes = blob.size; // Get file size in bytes
-            const fileSizeInKB = fileSizeInBytes / 1024; // Convert bytes to KB
+            const fileSizeInKB = blob.size / 1024;
+            const speedInKBps = fileSizeInKB / durationInSeconds;
 
-            const speedInKBps = fileSizeInKB / durationInSeconds; // KB per second
-
-            console.log(`Downloaded ${fileSizeInKB.toFixed(2)} KB in ${durationInSeconds.toFixed(2)} seconds.`);
-            console.log(`Connection Speed: ${speedInKBps.toFixed(2)} KB/s`);
-
-            resolve(speedInKBps);  // Resolve with the speed in KB/s
+            resolve(speedInKBps);
           })
-          .catch(() => {
-            resolve(0);  // If there's an error (no internet), resolve as 0 KB/s
-          });
+          .catch(() => resolve(0));
       });
     }
 
     function refreshIfStrongConnection() {
       checkConnectionSpeed().then(speed => {
-        if (speed >= 10) {  // Threshold: 10 KB/s considered strong
+        if (speed >= 10) {
           hideNoInternetModal();
-          location.reload(true);  // Refresh page if connection is strong
+          location.reload(true);
         } else {
-          showNoInternetModal(`Weak connection detected (${speed.toFixed(2)} KB/s). Please try again.`);
+          showNoInternetModal(`Weak connection detected (${speed.toFixed(2)} KB/s).`);
         }
       });
     }
 
-    // Check on page load
     window.addEventListener('load', () => {
-      if (!navigator.onLine) {
-        showNoInternetModal();
-      }
+      if (!navigator.onLine) showNoInternetModal();
     });
 
-    // Listen for network changes
     window.addEventListener('online', refreshIfStrongConnection);
-    window.addEventListener('offline', () => {
-      showNoInternetModal('You are offline. Please reconnect.');
-    });
+    window.addEventListener('offline', () => showNoInternetModal('You are offline.'));
 
-    // Retry button logic
-    document.getElementById('retry-btn').addEventListener('click', () => {
-      if (navigator.onLine) {
-        refreshIfStrongConnection();  // Check speed and refresh if strong
-      } else {
-        showNoInternetModal('Still no internet connection. Please try again.');
-      }
-    });
-</script>
+    document.getElementById('retry-btn').addEventListener('click', refreshIfStrongConnection);
+ </script>
 </body>
 </html>
