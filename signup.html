@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #ffafbd, #ffc3a0);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0;
+            animation: fadeIn 2s;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0px 10px 30px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .container h2 {
+            margin-bottom: 20px;
+            color: #ffafbd;
+        }
+
+        input[type="text"],
+        input[type="email"],
+        input[type="password"] {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        button {
+            background-color: #ffafbd;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-size: 16px;
+            border-radius: 5px;
+            margin-top: 10px;
+            width: 100%;
+        }
+
+        button:hover {
+            background-color: #e598a1;
+        }
+
+        .link {
+            margin-top: 20px;
+            font-size: 14px;
+            color: #ffafbd;
+            cursor: pointer;
+        }
+
+        .link:hover {
+            text-decoration: underline;
+        }
+
+        #no-internet-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.85);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            z-index: 1000;
+        }
+
+        #no-internet-modal h2,
+        #no-internet-modal p {
+            color: white;
+            margin: 10px 0;
+        }
+
+        #retry-btn {
+            padding: 12px 24px;
+            font-size: 1rem;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="no-internet-modal">
+        <h2>No Internet Connection</h2>
+        <p id="connection-status">Checking connection strength...</p>
+        <button id="retry-btn">Retry</button>
+    </div>
+
+    <div class="container">
+        <h2>Sign Up</h2>
+        <input type="text" id="signup-name" placeholder="Name">
+        <input type="email" id="signup-email" placeholder="Email">
+        <input type="password" id="signup-password" placeholder="Password">
+        <button id="signup-btn">Sign Up</button>
+        <p class="link" onclick="window.location.href='login.html'">Already have an account? Login</p>
+    </div>
+
+    <script type="module">
+        import {
+            initializeApp
+        } from "https://www.gstatic.com/firebasejs/10.3.0/firebase-app.js";
+        import {
+            getAuth,
+            createUserWithEmailAndPassword,
+            updateProfile
+        } from "https://www.gstatic.com/firebasejs/10.3.0/firebase-auth.js";
+        import firebaseConfig from "./firebaseConfig.js";
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+
+        document.getElementById("signup-btn").addEventListener("click", async () => {
+            const name = document.getElementById("signup-name").value;
+            const email = document.getElementById("signup-email").value;
+            const password = document.getElementById("signup-password").value;
+
+            try {
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                await updateProfile(userCredential.user, {
+                    displayName: name
+                });
+                alert("Sign-up successful!");
+                window.location.href = "index.html";
+            } catch (error) {
+                alert("invalid email or password please recheck your details and try again");
+            }
+        });
+        const modal = document.getElementById('no-internet-modal');
+        const statusMessage = document.getElementById('connection-status');
+
+        function showNoInternetModal(message = 'Please check your connection and try again.') {
+            statusMessage.textContent = message;
+            modal.style.display = 'flex';
+        }
+
+        function hideNoInternetModal() {
+            modal.style.display = 'none';
+        }
+
+        // Function to test connection speed in KB/s
+        function checkConnectionSpeed() {
+            return new Promise((resolve, reject) => {
+                const fileUrl = "https://www.w3.org/TR/PNG/iso_8859-1.txt"; // Approx 25KB file
+                const startTime = new Date().getTime();
+
+                fetch(fileUrl)
+                    .then(response => response.blob())
+                    .then(blob => {
+                        const endTime = new Date().getTime();
+                        const durationInSeconds = (endTime - startTime) / 1000; // Time in seconds
+
+                        const fileSizeInBytes = blob.size; // Get file size in bytes
+                        const fileSizeInKB = fileSizeInBytes / 1024; // Convert bytes to KB
+
+                        const speedInKBps = fileSizeInKB / durationInSeconds; // KB per second
+
+                        console.log(`Downloaded ${fileSizeInKB.toFixed(2)} KB in ${durationInSeconds.toFixed(2)} seconds.`);
+                        console.log(`Connection Speed: ${speedInKBps.toFixed(2)} KB/s`);
+
+                        resolve(speedInKBps); // Resolve with the speed in KB/s
+                    })
+                    .catch(() => {
+                        resolve(0); // If there's an error (no internet), resolve as 0 KB/s
+                    });
+            });
+        }
+
+        function refreshIfStrongConnection() {
+            checkConnectionSpeed().then(speed => {
+                if (speed >= 10) { // Threshold: 10 KB/s considered strong
+                    hideNoInternetModal();
+                    location.reload(true); // Refresh page if connection is strong
+                } else {
+                    showNoInternetModal(`Weak connection detected (${speed.toFixed(2)} KB/s). Please try again.`);
+                }
+            });
+        }
+
+        // Check on page load
+        window.addEventListener('load', () => {
+            if (!navigator.onLine) {
+                showNoInternetModal();
+            }
+        });
+
+        // Listen for network changes
+        window.addEventListener('online', refreshIfStrongConnection);
+        window.addEventListener('offline', () => {
+            showNoInternetModal('You are offline. Please reconnect.');
+        });
+
+        // Retry button logic
+        document.getElementById('retry-btn').addEventListener('click', () => {
+            if (navigator.onLine) {
+                refreshIfStrongConnection(); // Check speed and refresh if strong
+            } else {
+                showNoInternetModal('Still no internet connection. Please try again.');
+            }
+        });
+    </script>
+</body>
+
+</html>

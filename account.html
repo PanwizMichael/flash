@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Settings</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #e5ddd5;
+            margin: 0;
+            padding: 0;
+        }
+
+        #navbar {
+            background-color: #075e54;
+            color: white;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 100;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        #navbar h2 {
+            margin: 0;
+            font-size: 18px;
+        }
+
+        #navbar button {
+            background: none;
+            color: white;
+            border: none;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        #account-container {
+            margin-top: 70px;
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            max-width: 400px;
+            margin: auto;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        h2 {
+            text-align: center;
+            font-size: 20px;
+            margin-bottom: 15px;
+            color: #075e54;
+        }
+
+        .section {
+            margin-bottom: 30px;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            font-size: 14px;
+            color: #333;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-top: 5px;
+            font-size: 14px;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        .update-btn {
+            background-color: #25d366;
+            margin-top: 10px;
+        }
+
+        .update-btn:hover {
+            background-color: #128c7e;
+        }
+
+        .reset-btn {
+            background-color: #ff9800;
+        }
+
+        .reset-btn:hover {
+            background-color: #f57c00;
+        }
+
+        .delete-btn {
+            background-color: #f44336;
+        }
+
+        .delete-btn:hover {
+            background-color: #d32f2f;
+        }
+
+        .change-email-btn {
+            background-color: #4285F4;
+        }
+
+        .change-email-btn:hover {
+            background-color: #357ae8;
+        }
+    </style>
+</head>
+<body>
+    <div id="navbar">
+        <h2>Account Settings</h2>
+        <button onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</button>
+    </div>
+
+    <div id="account-container">
+        <!-- Update Profile Section -->
+        <div class="section">
+            <h2>Update Profile</h2>
+            <div class="input-group">
+                <label for="name">Full Name</label>
+                <input type="text" id="name" placeholder="Enter your full name">
+            </div>
+            <div class="input-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" placeholder="Enter a new username">
+            </div>
+            <button class="update-btn" onclick="updateProfile()">
+                <i class="fas fa-save"></i> Update Profile
+            </button>
+        </div>
+
+        <!-- Change Email Section -->
+        <div class="section">
+            <h2>Change Email</h2>
+            <div class="input-group">
+                <label for="email">New Email</label>
+                <input type="email" id="email" placeholder="Enter a new email">
+            </div>
+            <button class="change-email-btn" onclick="changeEmail()">
+                <i class="fas fa-envelope"></i> Change Email
+            </button>
+        </div>
+
+        <!-- Reset Password Section -->
+        <div class="section">
+            <h2>Reset Password</h2>
+            <button class="reset-btn" onclick="resetPassword()">
+                <i class="fas fa-key"></i> Reset Password
+            </button>
+        </div>
+
+        <!-- Delete Account Section -->
+        <div class="section">
+            <h2>Delete Account</h2>
+            <button class="delete-btn" onclick="deleteAccount()">
+                <i class="fas fa-trash-alt"></i> Delete Account
+            </button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.3.0/firebase-app.js";
+        import {
+            getAuth,
+            signOut,
+            updateProfile,
+            updateEmail,
+            sendPasswordResetEmail,
+            deleteUser,
+            onAuthStateChanged
+        } from "https://www.gstatic.com/firebasejs/10.3.0/firebase-auth.js";
+        import firebaseConfig from './firebaseConfig.js';
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+
+        // Prefill user data
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                document.getElementById('name').value = user.displayName || '';
+                document.getElementById('username').value = ''; // Fetch username if stored in Firestore
+                document.getElementById('email').value = user.email || '';
+            } else {
+                window.location.href = "login.html";
+            }
+        });
+
+        // Logout
+        window.logout = function() {
+            signOut(auth).then(() => {
+                alert("Logged out successfully.");
+                window.location.href = "login.html";
+            }).catch(console.error);
+        };
+
+        // Update Profile
+        window.updateProfile = function() {
+            const user = auth.currentUser;
+            const name = document.getElementById('name').value;
+            const username = document.getElementById('username').value;
+
+            if (name) updateProfile(user, { displayName: name });
+            if (username) {
+                // Logic to update username in Firestore
+            }
+            alert("Profile updated successfully!");
+        };
+
+        // Change Email
+        window.changeEmail = function() {
+            const user = auth.currentUser;
+            const email = document.getElementById('email').value;
+
+            if (email) {
+                updateEmail(user, email).then(() => {
+                    alert("Email updated successfully!");
+                }).catch(console.error);
+            }
+        };
+
+        // Reset Password
+        window.resetPassword = function() {
+            const user = auth.currentUser;
+
+            sendPasswordResetEmail(auth, user.email).then(() => {
+                alert("Password reset email sent.");
+            }).catch(console.error);
+        };
+
+        // Delete Account
+        window.deleteAccount = function() {
+            const user = auth.currentUser;
+
+            if (confirm("Are you sure you want to delete your account? This action cannot be undone.")) {
+                deleteUser(user).then(() => {
+                    alert("Account deleted successfully.");
+                    window.location.href = "login.html";
+                }).catch(console.error);
+            }
+        };
+    </script>
+</body>
+</html>
