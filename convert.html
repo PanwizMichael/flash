@@ -1,0 +1,46 @@
+<!doctype html>
+<html>
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" id="viewport" content="width=device-width, initial-scale=1">
+    <title>converter</title>
+    <link rel="stylesheet" href="convert.css">
+</head>
+    <body>
+          div class="container">
+  <div class="key">
+    <p>Get Your FREE API KEY <a target="_blank" href="https://www.exchangerate-api.com/">HERE</a></p>
+  </div>
+
+
+  <div class="currency-container">
+    <h1>Currency<br>Converter</h1>
+    <div class="input-box">
+      <label for="amount">Enter amount</label>
+      <input type="text" id="amount" placeholder="100" required />
+    </div>
+    <div class="currency">
+      <div class="box">
+        <select class="select-option" name="from-currency" id="fromCurrency">
+          <option value="USD">United States Dollar</option>
+        </select>
+      </div>
+      <div>
+        <span>TO</span>
+      </div>
+      <div class="box">
+        <select class="select-option" name="to-currency" id="toCurrency">
+          <option value="USD">United States Dollar</option>
+        </select>
+      </div>
+      <button class="convert">Convert</button>
+      <p class="result"></p>
+      <p class="error"></p>
+
+    </div>
+  </div>
+</div>
+
+    <script src="convert.js"></script>
+    </body>
+</html>

@@ -1,0 +1,41 @@
+<!doc type html>
+<html>
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" id="viewport" content="width=device-width, initial-scale=1">
+      <link rel="stylesheet" href="style.css">
+   <title>Contact Us (Panwiz)</title>
+ </head>
+    <body>
+         <!-- Loading Screen -->
+    <div id="loader">
+        <div class="spinner"></div>
+    </div>
+     <div class="panwiz">
+             <img src="mepan.jpg">
+               
+            <button class="contact"><a href="tel:+2348107027052">Contact Us</a></button>
+        </div>
+      <div class="about">
+        <img src="mepan.jpg">
+        <h1><b>About Panwiz</b></h1>
+         <p>Panwiz Is young programmer from Nigeria</p>
+         <p>He is 17 years old and still practicing Programming languages </p>
+        <p></p>
+     </div>
+        <br>
+        <a href="newFile.html" style=" text-align: center; font-size: 2rem; color: red; background-color: purple ;">Home</a>
+       <script>
+        // Show loading animation, then hide it after 3 seconds
+        window.addEventListener("load", function() {
+            const loader = document.getElementById('loader');
+            const mainContent = document.getElementById('main-content');
+
+            setTimeout(() => {
+                loader.classList.add('fade-out');  // Add fade-out effect
+                mainContent.style.display = 'block';  // Show main content
+            }, 3000);  // 3-second delay
+        });
+    </script>
+  </body>
+</html>
