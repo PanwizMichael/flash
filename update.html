@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Checking for Updates - Alert Pro Bank</title>
+<style>
+  body {
+    margin:0; height:100vh; display:flex; flex-direction:column;
+    justify-content:center; align-items:center;
+    font-family:"Segoe UI",sans-serif;
+    background:linear-gradient(145deg,#0f172a,#1e293b);
+    color:#fff;
+  }
+  .box {
+    background:rgba(255,255,255,0.05);
+    backdrop-filter:blur(12px);
+    border-radius:20px;
+    padding:30px;
+    text-align:center;
+    box-shadow:0 8px 25px rgba(0,0,0,.4);
+    width:90%; max-width:420px;
+  }
+  .loader {
+    border:4px solid rgba(255,255,255,0.2);
+    border-top:4px solid #1f7aec;
+    border-radius:50%; width:60px; height:60px;
+    margin:20px auto; animation:spin 1.1s linear infinite;
+  }
+  @keyframes spin {to{transform:rotate(360deg)}}
+  .btn{
+    background:linear-gradient(145deg,#2563eb,#1e3a8a);
+    border:none;color:#fff;font-weight:600;
+    padding:12px 22px;border-radius:10px;
+    cursor:pointer;box-shadow:0 4px 15px rgba(37,99,235,.4);
+    margin-top:12px;
+  }
+  .alert{
+    display:none;margin-top:12px;padding:10px 14px;
+    border-radius:8px;background:#ef4444;
+    font-weight:500;
+  }
+</style>
+</head>
+<body>
+<div class="box">
+  <h2>Checking for Updates</h2>
+  <div class="loader" id="loader"></div>
+  <p id="status">Connecting to Firebase...</p>
+  <div class="alert" id="alertBox"></div>
+  <button class="btn" id="retryBtn" style="display:none;">Retry</button>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+  import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyD9mpp_26CRUmGOuw0G4biLp-TJvCbwlQ4",
+    authDomain: "alert-pro-bank.firebaseapp.com",
+    databaseURL: "https://alert-pro-bank-default-rtdb.firebaseio.com",
+    projectId: "alert-pro-bank",
+    storageBucket: "alert-pro-bank.firebasestorage.app", // still fine
+    messagingSenderId: "30867099971",
+    appId: "1:30867099971:web:43525e6434f12a2e2f5ff6",
+    measurementId: "G-KJ3XW01N0E"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  const LOCAL_VERSION = "1.0.0";
+  const status = document.getElementById("status");
+  const alertBox = document.getElementById("alertBox");
+  const retryBtn = document.getElementById("retryBtn");
+  const loader = document.getElementById("loader");
+
+  async function checkUpdate(){
+    status.textContent = "Connecting to Firebase...";
+    alertBox.style.display="none";
+    retryBtn.style.display="none";
+    loader.style.display="block";
+    try{
+      const ref = doc(db,"appVersion","current");
+      let snap = await getDoc(ref);
+      if(!snap.exists()){
+        // auto-create the collection/document
+        await setDoc(ref,{
+          latestVersion: LOCAL_VERSION,
+          updateNotes: "Initial release.",
+          forceUpdate:false,
+          downloadUrl:"https://github.com/YourUsername/AlertProBank/releases/latest"
+        });
+        snap = await getDoc(ref);
+      }
+
+      const data = snap.data();
+      if(data.latestVersion!==LOCAL_VERSION){
+        loader.style.display="none";
+        status.textContent=`New version ${data.latestVersion} available`;
+        alertBox.style.display="block";
+        alertBox.textContent=data.updateNotes||"Please update to continue.";
+        const btn=document.createElement("button");
+        btn.className="btn";
+        btn.textContent="Update Now";
+        btn.onclick=()=>window.location.href=data.downloadUrl;
+        document.body.appendChild(btn);
+      } else {
+        status.textContent="App is up to date. Redirecting...";
+        setTimeout(()=>window.location.href="splash.html",1500);
+      }
+    }catch(err){
+      console.error(err);
+      loader.style.display="none";
+      alertBox.textContent="❌ Failed to connect. Check your Internet or Firestore rules.";
+      alertBox.style.display="block";
+      retryBtn.style.display="inline-block";
+      retryBtn.onclick=checkUpdate;
+    }
+  }
+
+  checkUpdate();
+</script>
+</body>
+</html>
